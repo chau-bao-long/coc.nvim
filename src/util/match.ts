@@ -2,6 +2,7 @@ import minimatch from 'minimatch'
 import { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import * as platform from './platform'
+const logger = require('./logger')('provider-manager')
 
 export function score(selector: DocumentSelector | DocumentFilter | string, uri: string, languageId: string): number {
   if (Array.isArray(selector)) {
@@ -30,11 +31,12 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     }
   } else if (selector) {
     let u = URI.parse(uri)
+    let uriScheme = u.scheme.replace('zipfile', 'file')
     // filter -> select accordingly, use defaults for scheme
     const { language, pattern, scheme } = selector
     let ret = 0
     if (scheme) {
-      if (scheme === u.scheme) {
+      if (scheme === uriScheme) {
         ret = 5
       } else if (scheme === '*') {
         ret = 3
