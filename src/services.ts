@@ -38,6 +38,7 @@ export function getStateName(state: ServiceStat): string {
 export class ServiceManager extends EventEmitter implements Disposable {
   private readonly registered: Map<string, IServiceProvider> = new Map()
   private disposables: Disposable[] = []
+  private enabledServices: Record<string, boolean> = {}
 
   public init(): void {
     workspace.onDidOpenTextDocument(document => {
@@ -150,6 +151,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
       if (state == ServiceStat.Running) {
         await Promise.resolve(service.stop())
       } else if (state == ServiceStat.Initial) {
+        this.enabledServices[service.name] = true
         await service.start()
       } else if (state == ServiceStat.Stopped) {
         await service.restart()
@@ -277,7 +279,8 @@ export class ServiceManager extends EventEmitter implements Disposable {
         if (!created) {
           if (typeof name == 'string' && !client) {
             let config: LanguageServerConfig = workspace.getConfiguration().get<{ key: LanguageServerConfig }>('languageserver', {} as any)[name]
-            if (!config || config.enable === false) return
+            if (this.enabledServices[name] === undefined) this.enabledServices[name] = config.enable
+            if (!config || this.enabledServices[name] === false) return
             let opts = getLanguageServerOptions(id, name, config)
             if (!opts) return
             client = new LanguageClient(id, name, opts[1], opts[0])
